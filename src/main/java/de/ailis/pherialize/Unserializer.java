@@ -20,16 +20,13 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-
 package de.ailis.pherialize;
 
+import de.ailis.pherialize.exceptions.UnserializeException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-
-import de.ailis.pherialize.exceptions.UnserializeException;
-
 
 /**
  * Unserializes a PHP serialize format string into a Java object.
@@ -37,44 +34,43 @@ import de.ailis.pherialize.exceptions.UnserializeException;
  * @author Klaus Reimer (k@ailis.de)
  * @version $Revision$
  */
+public class Unserializer {
 
-public class Unserializer
-{
-    /** The current pointer in the data */
+    /**
+     * The current pointer in the data
+     */
     private int pos;
 
-    /** The data to unserialize */
+    /**
+     * The data to unserialize
+     */
     private final String data;
 
-    /** The original charset of the input data. */
+    /**
+     * The original charset of the input data.
+     */
     private final Charset charset;
 
-    /** The object history for resolving references */
+    /**
+     * The object history for resolving references
+     */
     private final List<Object> history;
-
 
     /**
      * Constructor
      *
-     * @param data
-     *            The data to unserialize
+     * @param data The data to unserialize
      */
-
-    public Unserializer(final String data)
-    {
+    public Unserializer(final String data) {
         this(data, Charset.forName("UTF-8"));
     }
 
-
     /**
      * Constructor
      *
-     * @param data
-     *            The data to unserialize
+     * @param data The data to unserialize
      */
-
-    public Unserializer(final String data, Charset charset)
-    {
+    public Unserializer(final String data, Charset charset) {
         super();
         this.data = decode(data, charset);
         this.charset = charset;
@@ -82,21 +78,17 @@ public class Unserializer
         this.history = new ArrayList<Object>();
     }
 
-
     /**
      * Unserializes the next object in the data stream.
      *
      * @return The unserializes object
      */
-
-    public Mixed unserializeObject()
-    {
+    public Mixed unserializeObject() {
         char type;
         Mixed result;
 
         type = this.data.charAt(this.pos);
-        switch (type)
-        {
+        switch (type) {
             case 's':
                 result = unserializeString();
                 break;
@@ -126,22 +118,19 @@ public class Unserializer
 
             default:
                 throw new UnserializeException(
-                    "Unable to unserialize unknown type " + type);
+                        "Unable to unserialize unknown type " + type);
         }
 
         this.history.add(result);
         return result;
     }
 
-
     /**
      * Unserializes the next object in the data stream into a String.
      *
      * @return The unserialized String
      */
-
-    private Mixed unserializeString()
-    {
+    private Mixed unserializeString() {
         int pos, length;
 
         pos = this.data.indexOf(':', this.pos + 2);
@@ -151,33 +140,27 @@ public class Unserializer
         return new Mixed(encode(unencoded, charset));
     }
 
-
     /**
      * Unserializes the next object in the data stream into an Integer.
      *
      * @return The unserialized Integer
      */
-
-    private Mixed unserializeInteger()
-    {
-        Integer result;
+    private Mixed unserializeInteger() {
+        Long result;
         int pos;
 
         pos = this.data.indexOf(';', this.pos + 2);
-        result = Integer.valueOf(this.data.substring(this.pos + 2, pos));
+        result = Long.valueOf(this.data.substring(this.pos + 2, pos));
         this.pos = pos + 1;
         return new Mixed(result);
     }
-
 
     /**
      * Unserializes the next object in the data stream into an Double.
      *
      * @return The unserialized Double
      */
-
-    private Mixed unserializeDouble()
-    {
+    private Mixed unserializeDouble() {
         Double result;
         int pos;
 
@@ -187,15 +170,12 @@ public class Unserializer
         return new Mixed(result);
     }
 
-
     /**
      * Unserializes the next object in the data stream as a reference.
      *
      * @return The unserialized reference
      */
-
-    private Mixed unserializeReference()
-    {
+    private Mixed unserializeReference() {
         int index;
         int pos;
 
@@ -205,15 +185,12 @@ public class Unserializer
         return (Mixed) this.history.get(index - 1);
     }
 
-
     /**
      * Unserializes the next object in the data stream into a Boolean.
      *
      * @return The unserialized Boolean
      */
-
-    private Mixed unserializeBoolean()
-    {
+    private Mixed unserializeBoolean() {
         Boolean result;
 
         result = Boolean.valueOf(this.data.charAt(this.pos + 2) == '1');
@@ -221,30 +198,24 @@ public class Unserializer
         return new Mixed(result);
     }
 
-
     /**
      * Unserializes the next object in the data stream into a Null
      *
      * @return The unserialized Null
      */
-
-    private Mixed unserializeNull()
-    {
+    private Mixed unserializeNull() {
         this.pos += 2;
         return null;
     }
 
-
     /**
      * Unserializes the next object in the data stream into an array. This
-     * method returns an ArrayList if the unserialized array has numerical
-     * keys starting with 0 or a HashMap otherwise.
+     * method returns an ArrayList if the unserialized array has numerical keys
+     * starting with 0 or a HashMap otherwise.
      *
      * @return The unserialized array
      */
-
-    private Mixed unserializeArray()
-    {
+    private Mixed unserializeArray() {
         Mixed result;
         MixedArray array;
         int pos;
@@ -258,8 +229,7 @@ public class Unserializer
         array = new MixedArray(max);
         result = new Mixed(array);
         this.history.add(result);
-        for (i = 0; i < max; i++)
-        {
+        for (i = 0; i < max; i++) {
             key = unserializeObject();
             this.history.remove(this.history.size() - 1);
             value = unserializeObject();
@@ -269,9 +239,7 @@ public class Unserializer
         return result;
     }
 
-
-    static String decode(String encoded, Charset charset)
-    {
+    static String decode(String encoded, Charset charset) {
         try {
             return new String(encoded.getBytes(charset), "ISO-8859-1");
         } catch (UnsupportedEncodingException e) {
@@ -279,9 +247,7 @@ public class Unserializer
         }
     }
 
-
-    static String encode(String decoded, Charset charset)
-    {
+    static String encode(String decoded, Charset charset) {
         try {
             return new String(decoded.getBytes("ISO-8859-1"), charset);
         } catch (UnsupportedEncodingException e) {
